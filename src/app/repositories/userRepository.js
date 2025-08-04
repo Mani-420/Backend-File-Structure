@@ -1,5 +1,6 @@
 import { User } from '../../models/userModel.js';
 
+
 export const createUser = async (userData) => {
   try {
     const newUser = new User(userData);
