@@ -1,6 +1,5 @@
 import { User } from '../../models/userModel.js';
 
-
 export const createUser = async (userData) => {
   try {
     const newUser = new User(userData);
@@ -42,6 +41,15 @@ export const deleteUser = async (userId) => {
     return user;
   } catch (error) {
     throw new Error('Error deleting user');
+  }
+};
+
+export const getUserByEmail = async (email) => {
+  try {
+    const userByEmail = await User.findOne({ email }).select('+password'); // Include password for login
+    return userByEmail;
+  } catch (error) {
+    throw new Error('Error fetching user by email: ' + error.message);
   }
 };
 

@@ -21,6 +21,9 @@ export const getTasks = async () => {
 export const getTask = async (taskId) => {
   try {
     const task = await Task.findById(taskId).populate('userId', 'userName');
+    if (!task) {
+      throw new Error('Task not found');
+    }
     return task;
   } catch (error) {
     throw new Error('Error fetching task: ' + error.message);
