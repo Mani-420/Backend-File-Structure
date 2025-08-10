@@ -75,6 +75,33 @@ export const deleteUser = async (userId) => {
   }
 };
 
+export const searchUsers = async (searchQuery, options = {}) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      sortedBy = 'createdAt',
+      sortOrder = 'desc'
+    } = options;
+    const skip = (page - 1) * limit;
+    const searchCriteria = {
+      $or: [
+        { fullName: { $regex: searchQuery, $options: 'i' } },
+        { userName: { $regex: searchQuery, $options: 'i' } }
+      ]
+    };
+
+    const users = await User.find(searchCriteria)
+      .select('-password -emailVerificationToken -passwordResetToken')
+      .sort({ [sortedBy]: sortOrder === 'desc' ? -1 : 1 })
+      .skip(skip)
+      .limit(limit);
+    return users;
+  } catch (error) {
+    throw new Error('Error searching users: ' + error.message);
+  }
+};
+
 export const allUsers = async () => {
   try {
     return await User.find({});
