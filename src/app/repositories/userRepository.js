@@ -149,7 +149,7 @@ class UserRepository {
     }
   }
 
-  async allUsers(options = {}) {
+  async getAllUsers(options = {}) {
     try {
       const {
         page = 1,
@@ -160,7 +160,28 @@ class UserRepository {
       const skip = (page - 1) * limit;
 
       const users = await User.find({})
-        .select('-password -emailVerificationToken -passwordResetToken')
+        .select('-emailVerificationToken -passwordResetToken')
+        .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
+        .skip(skip)
+        .limit(limit);
+      return users;
+    } catch (error) {
+      throw new Error('Error fetching users');
+    }
+  }
+
+  async getAllUsersAsAdmin(options = {}) {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        sortBy = 'createdAt',
+        sortOrder = 'desc'
+      } = options;
+      const skip = (page - 1) * limit;
+
+      const users = await User.find({})
+        .select('-emailVerificationToken -passwordResetToken')
         .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
         .skip(skip)
         .limit(limit);
