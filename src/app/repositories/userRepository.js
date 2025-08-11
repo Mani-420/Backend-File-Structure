@@ -37,6 +37,15 @@ class UserRepository {
     }
   }
 
+  async loginUser(email) {
+    try {
+      const user = await User.findOne({ email }).select('+password');
+      return user;
+    } catch (error) {
+      throw new Error('Error fetching user by email: ' + error.message);
+    }
+  }
+
   async getUserByUserName(userName) {
     try {
       const user = await User.findOne({ userName });
