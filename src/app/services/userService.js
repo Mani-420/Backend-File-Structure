@@ -9,10 +9,10 @@ class UserService {
     try {
       const { email, password, userName, fullName } = userData;
       // Check if user already exists with this Username
-      const existingUserByUsername = await userRepository.getUserByUsername(
+      const existingUserByUserName = await userRepository.getUserByUserName(
         userName
       );
-      if (existingUserByUsername) {
+      if (existingUserByUserName) {
         throw new Error('User already exists');
       }
 
@@ -141,9 +141,9 @@ class UserService {
       ];
 
       const updateData = {};
-      Object.keys(updates).forEach((key) => {
+      Object.keys(profileData).forEach((key) => {
         if (allowedUpdates.includes(key)) {
-          updateData[key] = updates[key];
+          updateData[key] = profileData[key];
         }
       });
 
@@ -180,8 +180,8 @@ class UserService {
       await userRepository.likeProfile(likerId, profileId);
 
       await Notification.createNotification({
-        recipientId: profileId,
-        senderId: likerId,
+        recipient: profileId,
+        sender: likerId,
         type: 'profile_like',
         message: `${liker.userName} liked your profile`,
         data: {
@@ -237,6 +237,132 @@ class UserService {
       };
     } catch (error) {
       throw new Error('Error unliking user profile: ' + error.message);
+    }
+  }
+
+  async searchUsers(searchQuery, options = {}) {
+    try {
+      const { page = 1, limit = 10 } = options;
+
+      if (!searchQuery || searchQuery.trim() === '') {
+        throw new Error('Search query cannot be empty');
+      }
+
+      const searchOptions = {
+        page: parseInt(page),
+        limit: parseInt(limit)
+      };
+
+      const result = await userRepository.searchUsers(
+        searchQuery.trim(),
+        searchOptions
+      );
+
+      // Return the User
+      return {
+        success: true,
+        message: 'Users fetched successfully',
+        data: result
+      };
+    } catch (error) {
+      throw new Error('Error searching users: ' + error.message);
+    }
+  }
+
+  async getAllUsers(options = {}) {
+    try {
+      const users = await userRepository.getAllUsers(options);
+
+      if (!users || users.length === 0) {
+        throw new Error('No users found');
+      }
+
+      return {
+        success: true,
+        message: 'Users fetched successfully',
+        data: users
+      };
+    } catch (error) {
+      throw new Error('Error fetching users: ' + error.message);
+    }
+  }
+
+  async getAllUsersAsAdmin(adminId, options = {}) {
+    try {
+      const { page = 1, limit = 10 } = options;
+
+      const paginationOptions = {
+        page: parseInt(page),
+        limit: parseInt(limit)
+      };
+
+      const admin = await userRepository.getUserById(adminId);
+
+      if (!admin || admin.isAdmin !== 'admin') {
+        throw new Error('Access Denied. Admin privileges required.');
+      }
+
+      const users = await userRepository.getAllUsersAsAdmin(
+        adminId,
+        paginationOptions
+      );
+
+      if (!users || users.length === 0) {
+        throw new Error('No users found');
+      }
+
+      return {
+        success: true,
+        message: 'Users fetched successfully',
+        data: users
+      };
+    } catch (error) {
+      throw new Error('Error fetching users: ' + error.message);
+    }
+  }
+
+  async deleteUserAsAdmin(adminId, userId) {
+    try {
+      const admin = await userRepository.getUserById(adminId);
+
+      if (!admin || admin.isAdmin !== 'admin') {
+        throw new Error('Access Denied. Admin privileges required.');
+      }
+
+      // Prevent admin from deleting themselves
+      if (adminId === userId) {
+        throw new Error('You cannot delete your own account');
+      }
+
+      const deletedUser = await userRepository.deleteUser(userId);
+
+      if (!deletedUser) {
+        throw new Error('No user found');
+      }
+
+      // Send Account Deletion Email
+      await EmailService.sendEmail({
+        to: deletedUser.email,
+        subject: 'Your Account Has Been Deleted',
+        template: 'account_deletion',
+        context: {
+          userName: deletedUser.userName,
+          actionUrl: `/users/${deletedUser._id}/profile`,
+          token
+        }
+      });
+
+      await Notification.deleteMany({
+        $or: [{ sender: userId }, { recipient: userId }]
+      });
+
+      return {
+        success: true,
+        message: 'User deleted successfully',
+        data: deletedUser
+      };
+    } catch (error) {
+      throw new Error('Error deleting users: ' + error.message);
     }
   }
 }
