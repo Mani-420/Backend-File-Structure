@@ -1,5 +1,4 @@
 import express from 'express';
-
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
@@ -10,6 +9,8 @@ import {
   notFoundHandler
 } from './middlewares/globalErrorHandler.js';
 
+import { emailService } from './app/services/emailService.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -19,11 +20,16 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors()); // Enable CORS
-app.use(express.json({ limit: '16kb' })); // Parse JSON bodies
-app.use(express.urlencoded({ extended: true, limit: '16kb' })); // Parse URL-encoded bodies
+app.use(cors());
+app.use(express.json({ limit: '16kb' }));
+app.use(express.urlencoded({ extended: true, limit: '16kb' }));
 app.use(express.static('public'));
 app.use(cookieParser());
+
+// Initialize email service (non-blocking)
+emailService.initialize().catch((err) => {
+  console.error('Email service initialization failed:', err.message);
+});
 
 // Importing routes
 import taskRoutes from './routes/taskRoute.js';
@@ -37,7 +43,7 @@ app.use('/api/v1/users', userRoutes);
 app.use(notFoundHandler);
 app.use(globalErrorHandler);
 
-// Start server listener
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
