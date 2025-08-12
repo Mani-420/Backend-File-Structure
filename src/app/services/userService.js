@@ -1,6 +1,7 @@
 import { userRepository } from '../repositories/userRepository.js';
 import { hashPassword, comparePassword } from '../../utils/passwordUtils.js';
 import { generateToken } from '../../utils/tokenUtils.js';
+import { emailService } from './emailService.js';
 
 import { Notification } from '../../models/notificationModel.js';
 
@@ -54,12 +55,13 @@ class UserService {
       const token = generateToken({ userId: newUser._id });
 
       // Send Welcome Email
-      await EmailService.sendEmail({
+      await emailService.sendEmail({
         to: newUser.email,
         subject: 'Welcome to Our Platform!',
         template: 'welcome',
         context: {
           userName: newUser.userName,
+          fullName: newUser.fullName,
           actionUrl: `/users/${newUser._id}/profile`,
           token
         }
